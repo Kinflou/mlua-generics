@@ -1,0 +1,21 @@
+[package]
+name = "mlua-generics-proc-macro"
+version = "0.1.0"
+edition = "2021"
+
+
+[lib]
+proc-macro = true
+
+
+[dependencies]
+mlua-generics-common = { path = "../common" }
+
+syn = { version = "2.0.48", features = ["full"] }
+quote = "1.0.35"
+proc-macro2 = "1.0.76"
+
+mlua = { version = "0.9.4",  features = ["lua51", "vendored"] }
+
+
+[dev-dependencies]
