@@ -16,7 +16,6 @@ pub fn ensured_parse_table(lua: &Lua) -> LuaResult<Table> {
         Ok(table) => Ok(table),
         Err(_) => {
             let parse_table = lua.create_table().unwrap();
-            parse_table.set_metatable(Some(create_parsing_metatable(lua)?));
 
             lua.globals().set(DEFAULT_TABLE_NAME, parse_table)?;
 
@@ -44,7 +43,7 @@ pub const DEFAULT_CTOR_PROXY_TABLE_NAME: &str = "ctors";
 pub const DEFAULT_HASH_TYPE_FN_NAME: &str = "_type";
 
 
-fn create_parsing_metatable(lua: &Lua) -> LuaResult<Table> {
+pub(crate) fn create_parsing_metatable(lua: &Lua) -> LuaResult<Table> {
     let parsing_metatable = lua.create_table().unwrap();
 
     parsing_metatable

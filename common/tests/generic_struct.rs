@@ -14,9 +14,18 @@ struct Foo<B> {
 }
 
 struct BarSquare {}
-impl UserData for BarSquare {}
+impl UserData for BarSquare {
+    fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
+        methods.add_method(parse_table::DEFAULT_HASH_TYPE_FN_NAME, |_, _, ()| {
+            let mut hasher = DefaultHasher::new();
+            std::hash::Hash::hash(&std::any::TypeId::of::<Self>(), &mut hasher);
+            Ok(hasher.finish())
+        });
+    }
+}
 impl<'lua> FromLua<'lua> for BarSquare {
     fn from_lua(value: Value<'lua>, lua: &'lua Lua) -> LuaResult<Self> {
+
         todo!()
     }
 }

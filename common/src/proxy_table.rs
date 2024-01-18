@@ -15,12 +15,16 @@ pub fn ensured_kind_table(lua: &Lua, kind_name: String) -> LuaResult<LuaTable> {
 
             let ctor_fn = format!(
                 r#"
-                return function(struct)
-                    return {}.{}.{}[struct:{}()](struct)
+                return function(args)
+                    print("args: "..tostring(args))
+                    local thing = {}.{}.{}[args]
+                    print("Thing: "..tostring(thing))
+
+                    return thing(args)
                 end
                 "#,
                 parse_table::DEFAULT_TABLE_NAME, kind_name,
-                parse_table::DEFAULT_CTOR_PROXY_TABLE_NAME, parse_table::DEFAULT_HASH_TYPE_FN_NAME
+                parse_table::DEFAULT_CTOR_PROXY_TABLE_NAME
             );
 
             let ctor_fn = lua.load(ctor_fn).eval::<mlua::Function>()?;
@@ -40,7 +44,11 @@ pub fn ensured_kind_ctor_table(lua: &Lua, kind_name: String) -> LuaResult<LuaTab
     match parse_table.get(parse_table::DEFAULT_CTOR_PROXY_TABLE_NAME) {
         Ok(t) => Ok(t),
         Err(_) => {
-            parse_table.set(parse_table::DEFAULT_CTOR_PROXY_TABLE_NAME, lua.create_table()?)?;
+            let ctor_table = lua.create_table()?;
+            ctor_table.set_metatable(Some(parse_table::create_parsing_metatable(lua)?));
+
+            parse_table.set(parse_table::DEFAULT_CTOR_PROXY_TABLE_NAME, ctor_table)?;
+
             parse_table.get(parse_table::DEFAULT_CTOR_PROXY_TABLE_NAME)
         }
     }
