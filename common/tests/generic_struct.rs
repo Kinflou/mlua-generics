@@ -1,6 +1,7 @@
 // Standard Uses
 use std::hash::Hasher;
 use std::collections::hash_map::DefaultHasher;
+use std::fmt::Debug;
 
 // External Uses
 use mlua::{FromLua, Lua, UserData, UserDataMethods, Value};
@@ -10,10 +11,13 @@ use mlua_generics_common::proxy_table;
 
 
 struct Foo<B> {
+    #[allow(unused)]
     bar: B
 }
 
+#[derive(Copy, Clone, Debug)]
 struct BarSquare {}
+
 impl UserData for BarSquare {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
         methods.add_method(parse_table::DEFAULT_HASH_TYPE_FN_NAME, |_, _, ()| {
@@ -24,9 +28,15 @@ impl UserData for BarSquare {
     }
 }
 impl<'lua> FromLua<'lua> for BarSquare {
-    fn from_lua(value: Value<'lua>, lua: &'lua Lua) -> LuaResult<Self> {
-
-        todo!()
+    fn from_lua(value: Value<'lua>, _lua: &'lua Lua) -> LuaResult<Self> {
+        match value {
+            Value::UserData(ud) => Ok(*ud.borrow::<Self>()?),
+            _ => Err(mlua::Error::FromLuaConversionError {
+                from: value.type_name(),
+                to: "BarSquare",
+                message: None,
+            }),
+        }
     }
 }
 
@@ -49,7 +59,7 @@ impl<B: 'static> UserData for Foo<B> {
 
 // Above we made a manual implementation, here is the rest of what it would generated
 // by the macro
-impl<'lua, B: FromLua<'lua> + 'static> Foo<B> {
+impl<'lua, B: FromLua<'lua> + Debug + 'static> Foo<B> {
     pub fn _lua_register_generic(lua: &'lua Lua) -> LuaResult<()> {
         let kind_name = "Foo";
 
@@ -69,8 +79,8 @@ impl<'lua, B: FromLua<'lua> + 'static> Foo<B> {
         Ok(())
     }
 
-    fn _lua_generic_ctor(lua: &Lua, param0: B) -> LuaResult<Foo<B>> {
-        todo!()
+    fn _lua_generic_ctor(_lua: &Lua, param0: B) -> LuaResult<Foo<B>> {
+        Ok(Self { bar: param0 })
     }
 }
 
@@ -92,7 +102,7 @@ fn set_foo_constructor_in_globals() {
 }
 
 #[test]
-fn script_create_foo_with_concrete_bar_string() {
+fn script_create_foo_with_concrete_bar_square() {
     let lua = Lua::new();
 
     // First register Foo into globals as normal
@@ -109,9 +119,29 @@ fn script_create_foo_with_concrete_bar_string() {
     lua.load(
         r#"
                     local square = BarSquare()
-                    print(square)
+                    print("Square: "..tostring(square))
 
                     local foo = _parse_table.Foo.new(square)
+              "#
+    ).exec().unwrap();
+
+    // Done!
+}
+
+
+#[test]
+fn script_create_foo_with_concrete_bar_string() {
+    let lua = Lua::new();
+
+    // First register Foo into globals as normal
+    register_foo_impls(&lua).unwrap();
+
+    // Now lets try to make a Foo instance with a concrete Bar
+    lua.load("print(_parse_table.Foo)").exec().unwrap();
+    lua.load("print(_parse_table.Foo.new)").exec().unwrap();
+    lua.load(
+        r#"
+                    local foo = _parse_table.Foo.new("hello")
               "#
     ).exec().unwrap();
 
