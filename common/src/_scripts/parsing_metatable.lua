@@ -1,10 +1,8 @@
 return function(this, key)
-    print("Trying to index:")
-    print("this: "..tostring(this))
-
     print("key: "..tostring(key))
+    print("key type: "..tostring(type(key)))
 
-    args = key
+    local args = key
 
     if type(key) == "userdata" then
         local type, _ = pcall(function() return key:_type() end)
@@ -14,38 +12,16 @@ return function(this, key)
         end
 
         args = {key:_type()}
-    end
-
-    if not type(key) == "table" then
-        args = {key}
+    elseif type(key) ~= "table" then
+        args = {key}  -- Issue is here, it needs to go into this table to match down low
     end
 
     for k, v in pairs(this) do
-        print("k type: "..tostring(type(k)))
-        print("k: "..k.." | v: "..tostring(v))
-
-        if type(k) == "string" then
-            k = table.pack(string.byte(k, 1, string.len(k)))
-        end
-
         local match = true
-        for kk, _ in pairs(args) do
-            print("kk type: "..tostring(type(kk)))
-            print("kk: "..k)
-
-            print("k == kk: "..tostring(k==kk))
-            match = match and k == kk
+        for _, kv in pairs(args) do
+            match = match and math.abs(k - kv) < 0.01
             if not match then break end
         end
-
-        --[[
-        for kk, kv in pairs(args) do
-            print("kk: "..k.."| kv: "..tostring(v))
-
-            match = match and k[kk] == kv
-            if not match then break end
-        end
-        --]]
 
         if match then return v end
     end

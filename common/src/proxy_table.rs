@@ -16,11 +16,8 @@ pub fn ensured_kind_table(lua: &Lua, kind_name: String) -> LuaResult<LuaTable> {
             let ctor_fn = format!(
                 r#"
                 return function(args)
-                    print("args: "..tostring(args))
-                    local thing = {}.{}.{}[args]
-                    print("Thing: "..tostring(thing))
-
-                    return thing(args)
+                    local ctor_fn = {}.{}.{}[args]
+                    return ctor_fn(args)
                 end
                 "#,
                 parse_table::DEFAULT_TABLE_NAME, kind_name,
